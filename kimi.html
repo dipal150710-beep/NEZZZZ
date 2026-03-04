@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Kimia · Simulasi Ujian Stoikiometri</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f4f0;
+  --bg2: #e8efe8;
+  --panel: #ffffff;
+  --panel2: #f7faf7;
+  --teal: #0a6e5c;
+  --teal2: #0d8870;
+  --teal3: #e0f2ee;
+  --lime: #84cc16;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --text: #1a2e1a;
+  --text2: #4a6741;
+  --text3: #7a9a78;
+  --border: #c8ddc8;
+  --shadow: 0 4px 24px rgba(10,110,92,0.1);
+  --shadow2: 0 12px 48px rgba(10,110,92,0.15);
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:'DM Sans',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height:100vh;
+  position:relative;
+}
+
+/* Molecule bg pattern */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    radial-gradient(circle 2px at 20% 15%, rgba(10,110,92,0.12) 0%, transparent 100%),
+    radial-gradient(circle 2px at 80% 25%, rgba(10,110,92,0.08) 0%, transparent 100%),
+    radial-gradient(circle 2px at 50% 70%, rgba(10,110,92,0.10) 0%, transparent 100%),
+    radial-gradient(circle 2px at 10% 80%, rgba(10,110,92,0.07) 0%, transparent 100%),
+    radial-gradient(circle 2px at 90% 65%, rgba(10,110,92,0.09) 0%, transparent 100%);
+  pointer-events:none; z-index:0;
+}
+
+.page { display:none; position:relative; z-index:1; }
+.page.active { display:block; }
+
+/* ===== COVER ===== */
+#cover {
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+.cover-card {
+  background: var(--panel);
+  border-radius:28px;
+  padding:52px 44px;
+  max-width:500px; width:100%;
+  box-shadow: var(--shadow2);
+  border: 1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.cover-card::before {
+  content:'⚗️';
+  position:absolute; top:-10px; right:-10px;
+  font-size:140px; opacity:0.06; line-height:1;
+  transform:rotate(15deg);
+}
+.cover-card::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:4px;
+  background: linear-gradient(90deg, var(--teal), var(--teal2), var(--lime));
+}
+
+.lab-badge {
+  display:inline-flex; align-items:center; gap:7px;
+  background: var(--teal3); border:1px solid rgba(10,110,92,0.2);
+  color: var(--teal); font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase;
+  padding:6px 14px; border-radius:6px; margin-bottom:22px;
+  font-family:'Space Mono',monospace;
+}
+
+.cover-card h1 {
+  font-size:32px; font-weight:700; line-height:1.2;
+  margin-bottom:6px; color:var(--text);
+  font-family:'DM Sans',sans-serif;
+}
+.cover-card h1 em {
+  color:var(--teal); font-style:normal;
+  border-bottom:3px solid var(--lime);
+}
+.cover-card h2 {
+  font-size:14px; color:var(--text2); margin-bottom:28px; font-weight:400;
+}
+
+.ref-box {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-left:3px solid var(--teal);
+  border-radius:10px; padding:12px 16px; margin-bottom:28px;
+}
+.ref-box p { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; line-height:1.9; }
+.ref-title { font-size:11px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; }
+
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:28px; }
+.stat-box {
+  background: var(--panel2); border:1px solid var(--border);
+  border-radius:12px; padding:12px 8px; text-align:center;
+}
+.stat-box .sv { font-size:22px; font-weight:700; color:var(--teal); font-family:'Space Mono',monospace; }
+.stat-box .sl { font-size:10px; color:var(--text3); margin-top:2px; text-transform:uppercase; letter-spacing:.5px; }
+
+.fg { margin-bottom:14px; }
+.fg label { display:block; font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-family:'Space Mono',monospace; }
+.fg input, .fg select {
+  width:100%; padding:12px 14px;
+  background:var(--panel2); border:1.5px solid var(--border); border-radius:10px;
+  font-size:14px; font-family:'DM Sans',sans-serif; color:var(--text);
+  outline:none; transition:border-color .2s, box-shadow .2s;
+}
+.fg input:focus, .fg select:focus {
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(10,110,92,0.1);
+}
+.fg select option { background:white; }
+
+.btn-start {
+  width:100%; padding:15px;
+  background: linear-gradient(135deg, var(--teal), var(--teal2));
+  color:white; font-size:15px; font-weight:700;
+  font-family:'DM Sans',sans-serif;
+  border:none; border-radius:12px; cursor:pointer;
+  transition:transform .2s, box-shadow .2s;
+  letter-spacing:.3px; margin-top:4px;
+}
+.btn-start:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(10,110,92,0.3); }
+
+/* ===== UJIAN ===== */
+#ujian { min-height:100vh; padding:16px; }
+
+.top-bar {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px; padding:12px 20px;
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:16px; flex-wrap:wrap; gap:10px;
+  box-shadow: var(--shadow);
+}
+.tu-info h3 { font-size:14px; font-weight:700; }
+.tu-info p { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; }
+.tu-timer {
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel2); border:1px solid var(--border);
+  border-radius:10px; padding:8px 18px;
+}
+.timer-lbl { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; }
+.timer-val { font-size:22px; font-weight:700; color:var(--teal); font-family:'Space Mono',monospace; }
+.timer-val.warn { color:var(--amber); }
+.timer-val.danger { color:var(--red); animation:blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.ujian-layout { display:grid; grid-template-columns:1fr 240px; gap:16px; align-items:start; }
+@media(max-width:768px) { .ujian-layout { grid-template-columns:1fr; } .side { order:-1; } }
+
+/* SOAL CARD */
+.qcard {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:20px; overflow:hidden; box-shadow:var(--shadow);
+}
+.qprog { height:4px; background:var(--bg2); }
+.qprog-bar { height:100%; background:linear-gradient(90deg, var(--teal), var(--lime)); transition:width .4s; }
+.qhead {
+  padding:16px 22px 12px; border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.qbadge {
+  background:var(--teal); color:white;
+  padding:4px 14px; border-radius:6px;
+  font-size:12px; font-weight:700; font-family:'Space Mono',monospace;
+}
+.qtype { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:1px; }
+
+.qtxt {
+  padding:20px 22px; font-size:14px; line-height:1.85;
+  color:var(--text); border-bottom:1px solid var(--bg2);
+}
+.qtxt sub { font-size:10px; }
+.qtxt sup { font-size:10px; }
+.formula {
+  display:inline-block; background:var(--teal3);
+  border:1px solid rgba(10,110,92,0.2); border-radius:5px;
+  padding:1px 7px; font-family:'Space Mono',monospace;
+  font-size:13px; color:var(--teal); font-weight:700;
+}
+
+/* OPTIONS */
+.opts { padding:16px 22px 22px; display:flex; flex-direction:column; gap:8px; }
+.opt {
+  display:flex; align-items:flex-start; gap:11px;
+  padding:11px 15px; border:1.5px solid var(--border); border-radius:11px;
+  cursor:pointer; transition:all .18s; background:var(--panel);
+  width:100%; text-align:left; font-family:'DM Sans',sans-serif;
+}
+.opt:hover:not(.sel):not(.dis) {
+  border-color:var(--teal); background:var(--teal3);
+  transform:translateX(3px);
+}
+.opt.sel { border-color:var(--teal); background:rgba(10,110,92,0.06); }
+.opt.ok { border-color:#16a34a; background:#f0fdf4; }
+.opt.wrong { border-color:var(--red); background:#fef2f2; }
+.opt.dis { cursor:default; }
+.opt-ltr {
+  width:28px; height:28px; min-width:28px; border-radius:7px;
+  background:var(--bg2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:var(--text2);
+  transition:all .18s; font-family:'Space Mono',monospace;
+}
+.opt.sel .opt-ltr { background:var(--teal); color:white; border-color:var(--teal); }
+.opt.ok .opt-ltr { background:#16a34a; color:white; border-color:#16a34a; }
+.opt.wrong .opt-ltr { background:var(--red); color:white; border-color:var(--red); }
+.opt-txt { font-size:13.5px; line-height:1.5; color:var(--text); padding-top:4px; }
+
+/* ESSAY */
+.essay-wrap { padding:16px 22px 22px; }
+.essay-wrap textarea {
+  width:100%; min-height:150px; resize:vertical;
+  padding:14px; background:var(--panel2);
+  border:1.5px solid var(--border); border-radius:11px;
+  font-family:'DM Sans',sans-serif; font-size:13.5px; line-height:1.7;
+  color:var(--text); outline:none; transition:border-color .2s;
+}
+.essay-wrap textarea:focus { border-color:var(--teal); }
+.kunci-box {
+  display:none; margin-top:14px;
+  background:#f0fdf4; border:1.5px solid #86efac;
+  border-radius:11px; padding:16px;
+}
+.kunci-box.show { display:block; }
+.kunci-lbl { font-size:11px; font-weight:700; color:#16a34a; text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; font-family:'Space Mono',monospace; }
+.kunci-txt { font-size:12.5px; line-height:1.85; color:var(--text); white-space:pre-line; font-family:'Space Mono',monospace; }
+.kunci-txt em { color:var(--teal); font-style:normal; font-weight:700; background:var(--teal3); padding:1px 5px; border-radius:3px; }
+
+.qnav {
+  padding:14px 22px; border-top:1px solid var(--border);
+  display:flex; justify-content:space-between; gap:10px;
+}
+.nav-b { padding:9px 22px; border-radius:9px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; }
+.nav-prev { background:var(--panel2); border:1.5px solid var(--border); color:var(--text2); }
+.nav-prev:hover { border-color:var(--teal); color:var(--teal); }
+.nav-next { background:linear-gradient(135deg,var(--teal),var(--teal2)); color:white; border:none; }
+.nav-next:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(10,110,92,0.3); }
+
+/* SIDEBAR */
+.side { display:flex; flex-direction:column; gap:12px; }
+.side-card {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:16px; padding:16px; box-shadow:var(--shadow);
+}
+.side-title { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; font-family:'Space Mono',monospace; }
+.num-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
+.nb {
+  aspect-ratio:1; border-radius:7px; border:1.5px solid var(--border);
+  background:var(--panel2); font-size:10px; font-weight:700;
+  cursor:pointer; transition:all .15s; color:var(--text3);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Mono',monospace;
+}
+.nb:hover { border-color:var(--teal); color:var(--teal); background:var(--teal3); }
+.nb.cur { border-color:var(--teal); background:var(--teal); color:white; }
+.nb.done { background:rgba(10,110,92,0.08); border-color:rgba(10,110,92,0.25); color:var(--teal2); }
+.nb.enb { font-size:9px; }
+
+.leg { display:flex; flex-direction:column; gap:6px; }
+.leg-i { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text2); }
+.leg-dot { width:12px; height:12px; border-radius:3px; border:1.5px solid; flex-shrink:0; }
+.ld-empty { border-color:var(--border); background:transparent; }
+.ld-done { background:rgba(10,110,92,0.08); border-color:rgba(10,110,92,0.3); }
+.ld-cur { background:var(--teal); border-color:var(--teal); }
+
+.submit-btn {
+  width:100%; padding:12px;
+  background:linear-gradient(135deg,#16a34a,#15803d);
+  color:white; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+  border:none; border-radius:11px; cursor:pointer; transition:all .2s;
+}
+.submit-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(22,163,74,0.3); }
+
+/* ===== HASIL ===== */
+#hasil { min-height:100vh; padding:24px 16px; display:flex; align-items:flex-start; justify-content:center; }
+.hasil-card {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:24px; max-width:700px; width:100%;
+  overflow:hidden; box-shadow:var(--shadow2);
+}
+.hasil-hero {
+  background:linear-gradient(135deg, var(--teal), var(--teal2));
+  padding:40px 32px; text-align:center; color:white; position:relative; overflow:hidden;
+}
+.hasil-hero::before {
+  content:'🧪'; font-size:160px; position:absolute;
+  right:-30px; bottom:-30px; opacity:0.08; line-height:1;
+}
+.score-wrap {
+  width:120px; height:120px; border-radius:50%;
+  background:rgba(255,255,255,0.15); border:3px solid rgba(255,255,255,0.4);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  margin:0 auto 18px; position:relative;
+}
+.score-wrap::after {
+  content:''; position:absolute; inset:-8px; border-radius:50%;
+  border:2px dashed rgba(255,255,255,0.3);
+  animation:spin 8s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg);} }
+.score-n { font-size:42px; font-weight:700; font-family:'Space Mono',monospace; line-height:1; }
+.score-l { font-size:11px; opacity:.75; margin-top:3px; letter-spacing:1px; text-transform:uppercase; }
+.h-nama { font-size:20px; font-weight:700; margin-bottom:3px; }
+.h-kelas { font-size:13px; opacity:.8; font-family:'Space Mono',monospace; }
+.pred {
+  display:inline-block; margin-top:14px;
+  background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4);
+  padding:5px 20px; border-radius:20px; font-size:13px; font-weight:700;
+}
+
+.stat-row { padding:22px 28px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; border-bottom:1px solid var(--border); }
+.stat-b { text-align:center; background:var(--panel2); border:1px solid var(--border); border-radius:12px; padding:14px 8px; }
+.sv { font-size:26px; font-weight:700; font-family:'Space Mono',monospace; }
+.sv.gr { color:#16a34a; } .sv.rd { color:var(--red); } .sv.bl { color:var(--teal); }
+.sl { font-size:11px; color:var(--text3); margin-top:3px; }
+
+.rev-sec { padding:22px 28px; }
+.rev-title { font-size:14px; font-weight:700; margin-bottom:12px; }
+.rev-list { display:flex; flex-direction:column; gap:7px; max-height:320px; overflow-y:auto; padding-right:4px; }
+.ri {
+  background:var(--panel2); border-radius:10px; padding:11px 13px;
+  display:flex; gap:11px; align-items:flex-start; border-left:3px solid;
+}
+.ri.ok { border-color:#16a34a; } .ri.wrong { border-color:var(--red); }
+.rn { font-size:11px; font-weight:700; min-width:24px; color:var(--text3); font-family:'Space Mono',monospace; }
+.rb { font-size:12px; line-height:1.5; flex:1; }
+.rb .rq { color:var(--text); margin-bottom:3px; }
+.rb .ru { color:var(--text3); } .rb .ru span { font-weight:600; color:var(--text2); }
+.rb .rk { color:#16a34a; font-weight:700; font-size:11px; font-family:'Space Mono',monospace; }
+
+.hasil-acts { padding:18px 28px 28px; display:flex; gap:12px; flex-wrap:wrap; }
+.btn-ulang {
+  flex:1; padding:13px; background:linear-gradient(135deg,var(--teal),var(--teal2));
+  color:white; border:none; border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; min-width:130px; transition:all .2s;
+}
+.btn-ulang:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(10,110,92,0.3); }
+.btn-essay-r {
+  flex:1; padding:13px;
+  background:var(--panel2); border:1.5px solid var(--border);
+  color:var(--teal); border-radius:12px;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+  cursor:pointer; min-width:130px; transition:all .2s;
+}
+.btn-essay-r:hover { border-color:var(--teal); background:var(--teal3); }
+
+/* ===== ESSAY REVIEW ===== */
+#erPage { min-height:100vh; padding:20px; }
+.er-card {
+  max-width:740px; margin:0 auto;
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:20px; overflow:hidden; box-shadow:var(--shadow);
+}
+.er-head { background:linear-gradient(135deg,var(--teal),var(--teal2)); padding:22px 28px; color:white; }
+.er-head h2 { font-size:18px; font-weight:700; margin-bottom:3px; }
+.er-head p { font-size:12px; opacity:.8; font-family:'Space Mono',monospace; }
+.er-item { padding:22px 28px; border-bottom:1px solid var(--border); }
+.er-item:last-child { border-bottom:none; }
+.er-num { font-size:11px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-family:'Space Mono',monospace; }
+.er-q { font-size:13.5px; font-weight:600; line-height:1.6; margin-bottom:12px; }
+.er-albl { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; font-family:'Space Mono',monospace; }
+.er-abox {
+  background:var(--panel2); border:1px solid var(--border);
+  border-left:3px solid var(--border); border-radius:9px;
+  padding:11px 13px; font-size:12.5px; line-height:1.6;
+  min-height:50px; white-space:pre-wrap; margin-bottom:12px; color:var(--text);
+  font-family:'DM Sans',sans-serif;
+}
+.er-klbl { font-size:11px; font-weight:700; color:#16a34a; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; font-family:'Space Mono',monospace; }
+.er-kbox {
+  background:#f0fdf4; border:1.5px solid #86efac; border-radius:9px;
+  padding:12px 14px; font-size:12px; line-height:1.85;
+  white-space:pre-line; color:var(--text); font-family:'Space Mono',monospace;
+}
+.er-kbox em { color:var(--teal); font-style:normal; font-weight:700; background:var(--teal3); padding:1px 5px; border-radius:3px; }
+.back-btn {
+  display:block; width:fit-content; margin:20px auto 28px;
+  padding:11px 30px; background:linear-gradient(135deg,var(--teal),var(--teal2));
+  color:white; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700;
+  border:none; border-radius:11px; cursor:pointer; transition:all .2s;
+}
+.back-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(10,110,92,0.3); }
+
+/* MODAL */
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:20px; }
+.modal.show { display:flex; }
+.modal-box {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:20px; padding:32px; max-width:360px; width:100%;
+  text-align:center; box-shadow:var(--shadow2);
+}
+.mi { font-size:48px; margin-bottom:14px; }
+.mt { font-size:18px; font-weight:700; margin-bottom:8px; }
+.md { font-size:13px; color:var(--text2); margin-bottom:22px; line-height:1.6; }
+.mbtns { display:flex; gap:10px; }
+.mc { flex:1; padding:11px; border:1.5px solid var(--border); border-radius:10px; background:var(--panel2); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; color:var(--text2); transition:all .2s; }
+.mc:hover { border-color:var(--text2); }
+.mok { flex:1; padding:11px; background:linear-gradient(135deg,var(--teal),var(--teal2)); color:white; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
+
+.rev-list::-webkit-scrollbar { width:4px; }
+.rev-list::-webkit-scrollbar-thumb { background:rgba(10,110,92,0.3); border-radius:2px; }
+.cover-note { font-size:11px; color:var(--text3); text-align:center; margin-top:14px; font-family:'Space Mono',monospace; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div id="cover" class="page active">
+  <div class="cover-card">
+    <div class="lab-badge">🧪 Lab Kimia · Simulasi</div>
+    <h1>Hukum Dasar Kimia<br>&amp; <em>Stoikiometri</em></h1>
+    <h2>Kelas X · Ujian Latihan Mandiri</h2>
+    <div class="ref-box">
+      <div class="ref-title">⚗ Tabel Referensi</div>
+      <p>Ar: H=1, C=12, N=14, O=16, Na=23, Mg=24, S=32, Cl=35,5, Ca=40, Fe=56
+NA = 6,022 × 10²³  |  STP = 22,4 L/mol</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="sv">20</div><div class="sl">PG</div></div>
+      <div class="stat-box"><div class="sv">5</div><div class="sl">Essay</div></div>
+      <div class="stat-box"><div class="sv">90</div><div class="sl">Menit</div></div>
+      <div class="stat-box"><div class="sv">100</div><div class="sl">Nilai</div></div>
+    </div>
+    <div class="fg"><label>Nama Lengkap</label><input type="text" id="inp-nama" placeholder="Ketik nama lengkap kamu..."></div>
+    <div class="fg">
+      <label>Kelas</label>
+      <select id="inp-kelas">
+        <option value="">— Pilih Kelas —</option>
+        <option>X-1</option><option>X-2</option><option>X-3</option><option>X-4</option>
+        <option>X-7</option><option>X-7 gacor</option><option>X-7 hebat</option><option>X-7 pinter</option>
+      </select>
+    </div>
+    <button class="btn-start" onclick="mulai()">Masuk Lab → Mulai Ujian</button>
+    <div class="cover-note">Hukum Lavoisier · Proust · Dalton · Gay-Lussac · Avogadro · Mol · Molaritas</div>
+  </div>
+</div>
+
+<!-- UJIAN -->
+<div id="ujian" class="page">
+  <div class="top-bar">
+    <div class="tu-info">
+      <h3 id="t-nama">—</h3>
+      <p id="t-kelas">Kimia · Kelas X · Stoikiometri</p>
+    </div>
+    <div class="tu-timer">
+      <span class="timer-lbl">⏱ Sisa</span>
+      <div class="timer-val" id="timer">90:00</div>
+    </div>
+  </div>
+
+  <div class="ujian-layout">
+    <div class="qcard">
+      <div class="qprog"><div class="qprog-bar" id="qpb"></div></div>
+      <div class="qhead">
+        <div class="qbadge" id="qnum">No. 01</div>
+        <div class="qtype" id="qtype">Pilihan Ganda</div>
+      </div>
+      <div class="qtxt" id="qtxt"></div>
+      <div id="qbody"></div>
+      <div class="qnav">
+        <button class="nav-b nav-prev" onclick="nav(-1)">← Prev</button>
+        <button class="nav-b nav-next" id="nav-next" onclick="handleNext()">Next →</button>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="side-card">
+        <div class="side-title">Navigasi Soal</div>
+        <p style="font-size:10px;color:var(--text3);margin-bottom:7px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.5px">PILIHAN GANDA</p>
+        <div class="num-grid" id="gpg"></div>
+        <p style="font-size:10px;color:var(--text3);margin:10px 0 7px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.5px">ESSAY</p>
+        <div class="num-grid" id="ge"></div>
+      </div>
+      <div class="side-card">
+        <div class="side-title">Keterangan</div>
+        <div class="leg">
+          <div class="leg-i"><div class="leg-dot ld-empty"></div> Belum dijawab</div>
+          <div class="leg-i"><div class="leg-dot ld-done"></div> Sudah dijawab</div>
+          <div class="leg-i"><div class="leg-dot ld-cur"></div> Soal aktif</div>
+        </div>
+      </div>
+      <div class="side-card" style="background:var(--teal3);border-color:rgba(10,110,92,0.2)">
+        <div class="side-title" style="color:var(--teal)">Referensi Cepat</div>
+        <p style="font-size:10px;color:var(--teal);font-family:'Space Mono',monospace;line-height:1.9">
+          n = m/Mr<br>
+          V = n × 22,4<br>
+          N = n × 6,022×10²³<br>
+          M = n/V(L)<br>
+          M₁V₁ = M₂V₂
+        </p>
+      </div>
+      <button class="submit-btn" onclick="konfirmasi()">✓ Kumpulkan Jawaban</button>
+    </div>
+  </div>
+</div>
+
+<!-- HASIL -->
+<div id="hasil" class="page">
+  <div class="hasil-card">
+    <div class="hasil-hero">
+      <div class="score-wrap">
+        <div class="score-n" id="h-nilai">0</div>
+        <div class="score-l">Nilai</div>
+      </div>
+      <div class="h-nama" id="h-nama">—</div>
+      <div class="h-kelas" id="h-kelas">—</div>
+      <div class="pred" id="h-pred">—</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-b"><div class="sv gr" id="s-benar">0</div><div class="sl">✅ Benar</div></div>
+      <div class="stat-b"><div class="sv rd" id="s-salah">0</div><div class="sl">❌ Salah</div></div>
+      <div class="stat-b"><div class="sv bl" id="s-kosong">0</div><div class="sl">— Kosong</div></div>
+    </div>
+    <div class="rev-sec">
+      <div class="rev-title">🔬 Review Jawaban Pilihan Ganda</div>
+      <div class="rev-list" id="rev-list"></div>
+    </div>
+    <div class="hasil-acts">
+      <button class="btn-ulang" onclick="ulang()">↺ Ulangi Ujian</button>
+      <button class="btn-essay-r" onclick="lihatEssay()">📝 Review Essay & Kunci</button>
+    </div>
+  </div>
+</div>
+
+<!-- ESSAY REVIEW -->
+<div id="erPage" class="page">
+  <div class="er-card">
+    <div class="er-head">
+      <h2>📝 Review Jawaban Essay</h2>
+      <p>Kimia Kelas X · Stoikiometri · Bandingkan dengan kunci</p>
+    </div>
+    <div id="er-content"></div>
+    <button class="back-btn" onclick="showPage('hasil')">← Kembali ke Hasil</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="mi">⚗️</div>
+    <div class="mt">Kumpulkan Jawaban?</div>
+    <div class="md" id="m-desc"></div>
+    <div class="mbtns">
+      <button class="mc" onclick="closeModal()">Cek Lagi</button>
+      <button class="mok" onclick="submit()">Kumpulkan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PG = [
+  {
+    q:'Pada reaksi: 2 gram H₂ + 16 gram O₂ menghasilkan air. Jika sesuai <b>Hukum Lavoisier</b>, massa air yang terbentuk adalah...',
+    o:['12 gram','14 gram','18 gram','20 gram','32 gram'], j:2,
+    p:'Hukum Lavoisier: massa total reaktan = massa produk. 2 + 16 = 18 gram'
+  },
+  {
+    q:'Berdasarkan <b>Hukum Proust</b>, senyawa SO₂ selalu mengandung perbandingan massa S : O = 1 : 1. Jika terdapat 32 gram S dalam suatu sampel SO₂, maka massa O dalam sampel tersebut adalah...',
+    o:['16 gram','32 gram','48 gram','64 gram','96 gram'], j:1,
+    p:'SO₂: S:O = 32:32 = 1:1. Massa O = 32 gram (sama dengan S)'
+  },
+  {
+    q:'Nitrogen dan oksigen dapat membentuk NO dan NO₂. Jika massa N dibuat sama (14 gram), perbandingan massa O dalam NO dan NO₂ adalah... (<b>Hukum Kelipatan Perbandingan</b>)',
+    o:['1 : 1','1 : 2','2 : 1','2 : 3','3 : 2'], j:1,
+    p:'NO: O = 16g per 14g N | NO₂: O = 32g per 14g N → rasio 16:32 = 1:2'
+  },
+  {
+    q:'Berdasarkan <b>Hukum Gay-Lussac</b>, reaksi: N₂(g) + 3H₂(g) → 2NH₃(g). Jika volume N₂ yang bereaksi adalah 5 liter, maka volume NH₃ yang dihasilkan (pada T dan P sama) adalah...',
+    o:['5 liter','10 liter','15 liter','20 liter','2,5 liter'], j:1,
+    p:'Koefisien N₂:NH₃ = 1:2. V NH₃ = (2/1) × 5 = 10 liter'
+  },
+  {
+    q:'Sesuai <b>Hipotesis Avogadro</b>, jika 2 liter gas X dan 2 liter gas Y diukur pada suhu dan tekanan yang sama, maka perbandingan jumlah molekul gas X dan gas Y adalah...',
+    o:['1 : 1','1 : 2','2 : 1','Bergantung massa molekulnya','Bergantung suhu'], j:0,
+    p:'Hipotesis Avogadro: volume sama pada T,P sama → jumlah molekul sama'
+  },
+  {
+    q:'Massa molekul relatif (Mr) dari senyawa Ca₃(PO₄)₂ adalah... (Ar: Ca=40, P=31, O=16)',
+    o:['278','290','310','328','350'], j:2,
+    p:'Mr = 3(40) + 2(31) + 8(16) = 120 + 62 + 128 = 310'
+  },
+  {
+    q:'Kadar unsur besi (Fe) dalam senyawa Fe₂O₃ adalah... (Ar: Fe=56, O=16)',
+    o:['50,0%','60,0%','69,9%','75,0%','80,5%'], j:2,
+    p:'Mr Fe₂O₃ = 2(56)+3(16) = 160. %Fe = (112/160)×100% ≈ 69,9%'
+  },
+  {
+    q:'Pupuk urea CO(NH₂)₂ memiliki kandungan nitrogen. Jika Mr urea = 60, kadar N dalam urea adalah...',
+    o:['23,3%','33,3%','40,0%','46,7%','53,3%'], j:3,
+    p:'Mr urea=60, massa N = 2×14 = 28. %N = (28/60)×100% = 46,7%'
+  },
+  {
+    q:'Sebanyak 0,5 mol gas CO₂ pada STP memiliki volume sebesar... (V molar STP = 22,4 L/mol)',
+    o:['5,6 liter','11,2 liter','16,8 liter','22,4 liter','44,8 liter'], j:1,
+    p:'V = n × 22,4 = 0,5 × 22,4 = 11,2 liter'
+  },
+  {
+    q:'Jumlah molekul yang terdapat dalam 3 mol H₂O adalah... (Nₐ = 6,022 × 10²³)',
+    o:['6,022 × 10²³','1,204 × 10²⁴','1,807 × 10²⁴','2,408 × 10²⁴','3,011 × 10²³'], j:2,
+    p:'N = 3 × 6,022×10²³ = 1,807 × 10²⁴ molekul'
+  },
+  {
+    q:'Berapa mol yang terdapat dalam 9 gram H₂O? (Mr H₂O = 18)',
+    o:['0,25 mol','0,5 mol','1 mol','1,5 mol','2 mol'], j:1,
+    p:'n = m/Mr = 9/18 = 0,5 mol'
+  },
+  {
+    q:'Berapa gram massa dari 2 mol CaCO₃? (Mr CaCO₃ = 100)',
+    o:['50 gram','100 gram','150 gram','200 gram','250 gram'], j:3,
+    p:'m = n × Mr = 2 × 100 = 200 gram'
+  },
+  {
+    q:'Suatu senyawa mengandung 75% C dan 25% H. Rumus empiris senyawa tersebut adalah... (Ar: C=12, H=1)',
+    o:['CH₂','CH₃','CH₄','C₂H₄','C₂H₆'], j:2,
+    p:'Mol C = 75/12 = 6,25 | Mol H = 25/1 = 25. Rasio C:H = 6,25:25 = 1:4 → CH₄'
+  },
+  {
+    q:'Rumus empiris suatu senyawa adalah CH₂O dan Mr senyawa = 90. Rumus molekul senyawa tersebut adalah... (Mr CH₂O = 30)',
+    o:['CH₂O','C₂H₄O₂','C₃H₆O₃','C₄H₈O₄','C₅H₁₀O₅'], j:2,
+    p:'n = 90/30 = 3. Rumus Molekul = 3 × CH₂O = C₃H₆O₃'
+  },
+  {
+    q:'Senyawa dengan rumus molekul C₆H₆ memiliki rumus empiris...',
+    o:['C₂H₂','C₃H₃','CH','C₂H₃','CH₂'], j:2,
+    p:'C₆H₆ dibagi FPB = 6 → CH (benzena)'
+  },
+  {
+    q:'Sebanyak 10 gram NaCl dilarutkan dalam 90 gram air. Kadar NaCl dalam larutan tersebut adalah...',
+    o:['5%','8%','10%','11%','15%'], j:2,
+    p:'%massa = (10/(10+90)) × 100% = 10/100 × 100% = 10%'
+  },
+  {
+    q:'Sebanyak 4 gram NaOH (Mr = 40) dilarutkan dalam air hingga volume larutan menjadi 500 mL. Molaritas larutan NaOH tersebut adalah...',
+    o:['0,1 M','0,2 M','0,4 M','0,5 M','1,0 M'], j:1,
+    p:'n = 4/40 = 0,1 mol. M = n/V(L) = 0,1/0,5 = 0,2 M'
+  },
+  {
+    q:'Larutan H₂SO₄ dengan konsentrasi 2 M sebanyak 200 mL diencerkan hingga konsentrasinya menjadi 0,4 M. Volume larutan setelah pengenceran adalah...',
+    o:['400 mL','600 mL','800 mL','1000 mL','1200 mL'], j:3,
+    p:'M₁V₁ = M₂V₂ → 2×200 = 0,4×V₂ → V₂ = 400/0,4 = 1000 mL'
+  },
+  {
+    q:'Sebanyak 3,011 × 10²³ atom Fe memiliki massa... (Ar Fe = 56, Nₐ = 6,022 × 10²³)',
+    o:['14 gram','28 gram','42 gram','56 gram','112 gram'], j:1,
+    p:'n = (3,011×10²³)/(6,022×10²³) = 0,5 mol. m = 0,5 × 56 = 28 gram'
+  },
+  {
+    q:'Pada reaksi: 2H₂(g) + O₂(g) → 2H₂O(g), volume H₂O yang dihasilkan jika 6 liter H₂ direaksikan dengan 6 liter O₂ (pada T dan P yang sama) adalah...',
+    o:['6 liter','8 liter','12 liter','16 liter','18 liter'], j:0,
+    p:'Rasio H₂:O₂:H₂O = 2:1:2. H₂ = 6L butuh O₂ = 3L (tersedia 6L, cukup). V H₂O = 6L'
+  },
+];
+
+const ES = [
+  {
+    q:'Sebuah senyawa mengandung 52,17% karbon (C), 13,04% hidrogen (H), dan 34,78% oksigen (O). Jika Mr senyawa tersebut adalah 46, tentukan:\na) Rumus empiris senyawa\nb) Rumus molekul senyawa\n(Ar: C=12, H=1, O=16)',
+    k:`Diketahui: %C=52,17%, %H=13,04%, %O=34,78%, Mr=46
+
+a) RUMUS EMPIRIS:
+   Mol C = 52,17/12 = 4,348
+   Mol H = 13,04/1  = 13,04
+   Mol O = 34,78/16 = 2,174
+
+   Bagi dengan terkecil (2,174):
+   C : H : O = 4,348/2,174 : 13,04/2,174 : 1
+             = 2 : 6 : 1
+   <em>Rumus Empiris = C₂H₆O</em>
+
+b) RUMUS MOLEKUL:
+   Mr C₂H₆O = 2(12)+6(1)+16 = 46
+   n = Mr senyawa / Mr RE = 46/46 = 1
+   <em>Rumus Molekul = C₂H₆O (etanol/alkohol)</em>`
+  },
+  {
+    q:'Seorang siswa mereaksikan besi dengan belerang menghasilkan besi(II) sulfida (FeS). Jika 28 gram Fe direaksikan sempurna:\na) Tentukan massa FeS yang terbentuk (Ar: Fe=56, S=32)\nb) Hitung jumlah mol FeS yang dihasilkan\nc) Hitung jumlah molekul FeS yang terbentuk',
+    k:`Reaksi: Fe + S → FeS
+Diketahui: massa Fe = 28 gram, Ar Fe=56, S=32, Mr FeS=88
+
+a) MASSA FeS (Hukum Lavoisier):
+   n Fe = 28/56 = 0,5 mol → n FeS = 0,5 mol
+   Massa S bereaksi = 0,5 × 32 = 16 gram
+   <em>Massa FeS = 28 + 16 = 44 gram</em>
+
+b) MOL FeS:
+   n FeS = 0,5 mol
+   Cek: n = 44/88 = 0,5 mol ✓
+   <em>n FeS = 0,5 mol</em>
+
+c) JUMLAH MOLEKUL FeS:
+   N = n × Nₐ = 0,5 × 6,022×10²³
+   <em>N = 3,011 × 10²³ molekul</em>`
+  },
+  {
+    q:'Asam sulfat (H₂SO₄) murni memiliki Mr = 98. Tentukan:\na) Kadar unsur H dalam H₂SO₄\nb) Kadar unsur S dalam H₂SO₄\nc) Kadar unsur O dalam H₂SO₄\nd) Verifikasi bahwa jumlah kadar semua unsur = 100%\n(Ar: H=1, S=32, O=16)',
+    k:`H₂SO₄: Mr = 2(1) + 32 + 4(16) = 2 + 32 + 64 = 98
+
+a) KADAR H:
+   %H = (2×1)/98 × 100% = 2/98 × 100%
+   <em>%H = 2,04%</em>
+
+b) KADAR S:
+   %S = (1×32)/98 × 100% = 32/98 × 100%
+   <em>%S = 32,65%</em>
+
+c) KADAR O:
+   %O = (4×16)/98 × 100% = 64/98 × 100%
+   <em>%O = 65,31%</em>
+
+d) VERIFIKASI:
+   2,04% + 32,65% + 65,31% = <em>100,00% ✓</em>`
+  },
+  {
+    q:'Larutan NaOH (Mr = 40) dibuat dengan cara melarutkan 20 gram NaOH dalam air sehingga volume larutan menjadi 250 mL.\na) Tentukan jumlah mol NaOH yang dilarutkan\nb) Tentukan molaritas larutan NaOH\nc) Jika diencerkan menjadi 1000 mL, tentukan molaritas setelah pengenceran',
+    k:`Diketahui: massa NaOH=20g, Mr=40, V₁=250mL=0,25L, V₂=1000mL=1L
+
+a) MOL NaOH:
+   n = m/Mr = 20/40
+   <em>n = 0,5 mol</em>
+
+b) MOLARITAS AWAL:
+   M₁ = n/V = 0,5/0,25
+   <em>M₁ = 2 M</em>
+
+c) SETELAH PENGENCERAN (M₁V₁ = M₂V₂):
+   M₂ = (M₁ × V₁)/V₂ = (2 × 250)/1000 = 500/1000
+   <em>M₂ = 0,5 M</em>`
+  },
+  {
+    q:'Pada STP, gas CO dan gas O₂ bereaksi:\n2CO(g) + O₂(g) → 2CO₂(g)\nJika gas CO yang tersedia adalah 10 liter, tentukan:\na) Volume O₂ yang dibutuhkan\nb) Volume CO₂ yang dihasilkan\nc) Massa CO₂ yang dihasilkan (Mr CO₂ = 44)',
+    k:`Reaksi: 2CO(g) + O₂(g) → 2CO₂(g)
+V CO = 10 liter, koefisien CO:O₂:CO₂ = 2:1:2
+
+a) VOLUME O₂ (Gay-Lussac):
+   V O₂ = (1/2) × V CO = (1/2) × 10
+   <em>V O₂ = 5 liter</em>
+
+b) VOLUME CO₂:
+   V CO₂ = (2/2) × V CO = 1 × 10
+   <em>V CO₂ = 10 liter</em>
+
+c) MASSA CO₂:
+   n CO₂ = V/22,4 = 10/22,4 = 0,446 mol
+   m = n × Mr = 0,446 × 44
+   <em>m CO₂ ≈ 19,6 gram</em>`
+  },
+];
+
+// ——— STATE ———
+let cur=0, jaw=new Array(25).fill(null), nama='', kls='', ti=null, wkt=90*60, done=false;
+const H=['A','B','C','D','E'];
+
+function mulai(){
+  nama=document.getElementById('inp-nama').value.trim();
+  kls=document.getElementById('inp-kelas').value;
+  if(!nama){alert('Masukkan nama kamu terlebih dahulu!');return;}
+  if(!kls){alert('Pilih kelas kamu terlebih dahulu!');return;}
+  document.getElementById('t-nama').textContent=nama;
+  document.getElementById('t-kelas').textContent='Kelas '+kls+' · Kimia · Stoikiometri';
+  buatGrid(); tampil(0); startTimer(); showPage('ujian');
+}
+
+function buatGrid(){
+  const gp=document.getElementById('gpg'), ge=document.getElementById('ge');
+  gp.innerHTML=''; ge.innerHTML='';
+  for(let i=0;i<20;i++){
+    const b=document.createElement('button');
+    b.className='nb'; b.id='nb-'+i;
+    b.textContent=String(i+1).padStart(2,'0');
+    b.onclick=()=>tampil(i); gp.appendChild(b);
+  }
+  for(let i=0;i<5;i++){
+    const b=document.createElement('button');
+    b.className='nb enb'; b.id='nb-'+(i+20);
+    b.textContent='E'+(i+1);
+    b.onclick=()=>tampil(i+20); ge.appendChild(b);
+  }
+}
+
+function tampil(idx){
+  cur=idx;
+  const pg=idx<20, si=pg?idx:idx-20, s=pg?PG[si]:ES[si];
+  document.getElementById('qnum').textContent=pg?'No. '+String(idx+1).padStart(2,'0'):'Essay '+(si+1);
+  document.getElementById('qtype').textContent=pg?'Pilihan Ganda':'Uraian';
+  document.getElementById('qtxt').innerHTML=s.q.replace(/\n/g,'<br>');
+  document.getElementById('qpb').style.width=((idx+1)/25*100)+'%';
+
+  const qb=document.getElementById('qbody');
+  if(pg){
+    let h='<div class="opts">';
+    s.o.forEach((op,i)=>{
+      let c='';
+      if(done){
+        if(i===s.j) c='ok dis';
+        else if(jaw[idx]===i) c='wrong dis';
+        else c='dis';
+      } else if(jaw[idx]===i) c='sel';
+      h+=`<button class="opt ${c}" onclick="pick(${i})">
+        <div class="opt-ltr">${H[i]}</div>
+        <div class="opt-txt">${op}</div>
+      </button>`;
+    });
+    if(done && s.p){
+      h+=`<div style="margin-top:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:11px 14px;font-size:12px;color:#166534;font-family:'Space Mono',monospace;line-height:1.7">
+        <b style="color:#16a34a">📐 Pembahasan:</b> ${s.p}</div>`;
+    }
+    h+='</div>';
+    qb.innerHTML=h;
+  } else {
+    const v=jaw[idx]||'', ro=done?'readonly':'', ks=done?'show':'';
+    qb.innerHTML=`<div class="essay-wrap">
+      <textarea id="eta" placeholder="Tulis jawaban lengkap kamu di sini (sertakan langkah-langkah perhitungan)..." oninput="saveE(this.value)" ${ro}>${v}</textarea>
+      <div class="kunci-box ${ks}">
+        <div class="kunci-lbl">✅ Kunci Jawaban</div>
+        <div class="kunci-txt">${s.k}</div>
+      </div>
+    </div>`;
+  }
+  const nn=document.getElementById('nav-next');
+  nn.textContent=idx===24?(done?'Lihat Hasil ✓':'Kumpulkan ✓'):'Next →';
+  updGrid();
+}
+
+function pick(i){ if(done)return; jaw[cur]=i; tampil(cur); }
+function saveE(v){ jaw[cur]=v; updGrid(); }
+function nav(d){ const n=cur+d; if(n>=0&&n<=24)tampil(n); }
+function handleNext(){ if(cur===24){if(done)showPage('hasil');else konfirmasi();}else nav(1); }
+
+function updGrid(){
+  for(let i=0;i<25;i++){
+    const b=document.getElementById('nb-'+i); if(!b)continue;
+    b.className='nb'+(i>=20?' enb':'');
+    if(i===cur) b.classList.add('cur');
+    else if(jaw[i]!==null&&jaw[i]!=='') b.classList.add('done');
+  }
+}
+
+function startTimer(){
+  ti=setInterval(()=>{
+    wkt--;
+    const m=String(Math.floor(wkt/60)).padStart(2,'0'), s=String(wkt%60).padStart(2,'0');
+    const el=document.getElementById('timer');
+    el.textContent=m+':'+s; el.className='timer-val';
+    if(wkt<=300) el.classList.add('warn');
+    if(wkt<=60) el.classList.add('danger');
+    if(wkt<=0){ clearInterval(ti); submit(); }
+  },1000);
+}
+
+function konfirmasi(){
+  const dp=jaw.slice(0,20).filter(j=>j!==null).length;
+  const de=jaw.slice(20).filter(j=>j!==null&&j!=='').length;
+  document.getElementById('m-desc').innerHTML=
+    `Dijawab <strong>${dp}/20</strong> PG dan <strong>${de}/5</strong> essay.<br><br>` +
+    (dp+de<25?'⚠️ Masih ada soal yang belum dijawab.':'✅ Semua soal sudah dijawab!');
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+
+function submit(){
+  closeModal(); clearInterval(ti); done=true;
+  let benar=0; PG.forEach((s,i)=>{ if(jaw[i]===s.j) benar++; });
+  const salah=jaw.slice(0,20).filter(j=>j!==null).length - benar;
+  const kosong=jaw.slice(0,20).filter(j=>j===null).length;
+  const nilaiPG=Math.round((benar/20)*60);
+  const nilai=nilaiPG+40;
+  const pred=nilai>=90?'🏆 Sangat Baik':nilai>=80?'⭐ Baik':nilai>=70?'✅ Cukup':'🔬 Perlu Latihan';
+
+  document.getElementById('h-nilai').textContent=nilai;
+  document.getElementById('h-nama').textContent=nama;
+  document.getElementById('h-kelas').textContent='Kelas '+kls+' · Kimia';
+  document.getElementById('h-pred').textContent=pred;
+  document.getElementById('s-benar').textContent=benar;
+  document.getElementById('s-salah').textContent=salah;
+  document.getElementById('s-kosong').textContent=kosong;
+
+  let html='';
+  PG.forEach((s,i)=>{
+    const ok=jaw[i]===s.j;
+    const soalTxt=s.q.replace(/<[^>]+>/g,'').replace(/\n/g,' ');
+    html+=`<div class="ri ${ok?'ok':'wrong'}">
+      <div class="rn">${String(i+1).padStart(2,'0')}</div>
+      <div class="rb">
+        <div class="rq">${soalTxt.length>75?soalTxt.slice(0,75)+'...':soalTxt}</div>
+        <div class="ru">Jawabanmu: <span>${jaw[i]!==null?H[jaw[i]]+'. '+s.o[jaw[i]]:'— tidak dijawab'}</span></div>
+        ${!ok?`<div class="rk">✓ ${H[s.j]}. ${s.o[s.j]}</div>`:''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('rev-list').innerHTML=html;
+  showPage('hasil');
+}
+
+function lihatEssay(){
+  let html='';
+  ES.forEach((s,i)=>{
+    const jw=jaw[i+20]||'';
+    html+=`<div class="er-item">
+      <div class="er-num">Essay ${i+1}</div>
+      <div class="er-q">${s.q.replace(/\n/g,'<br>')}</div>
+      <div class="er-albl">✏️ Jawabanmu</div>
+      <div class="er-abox">${jw||'<em style="color:var(--text3)">Tidak dijawab</em>'}</div>
+      <div class="er-klbl">✅ Kunci Jawaban</div>
+      <div class="er-kbox">${s.k.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  });
+  document.getElementById('er-content').innerHTML=html;
+  showPage('erPage');
+}
+
+function ulang(){
+  jaw=new Array(25).fill(null); cur=0; wkt=90*60; done=false;
+  clearInterval(ti); showPage('cover');
+}
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
